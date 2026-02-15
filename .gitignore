@@ -1,0 +1,25 @@
+# .gitignore for Grafana + Loki + Promtail monitoring stack
+
+# Environment files
+.env
+
+# Data directories
+loki-data/
+grafana-data/
+
+# Docker
+docker-compose.override.yml
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

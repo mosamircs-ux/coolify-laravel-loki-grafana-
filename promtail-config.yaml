@@ -1,0 +1,95 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  # Docker container logs scraping
+  - job_name: docker
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+    relabel_configs:
+      # Only scrape containers with specific labels or all containers
+      - source_labels: ['__meta_docker_container_name']
+        regex: '/(.*)'
+        target_label: 'container'
+      
+      # Extract container ID
+      - source_labels: ['__meta_docker_container_id']
+        target_label: 'container_id'
+      
+      # Extract image name
+      - source_labels: ['__meta_docker_container_image']
+        target_label: 'image'
+      
+      # Extract container labels as Loki labels
+      - source_labels: ['__meta_docker_container_label_com_docker_compose_project']
+        target_label: 'compose_project'
+      
+      - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
+        target_label: 'compose_service'
+      
+      # For Coolify-specific labels
+      - source_labels: ['__meta_docker_container_label_coolify_application_id']
+        target_label: 'coolify_app_id'
+      
+      - source_labels: ['__meta_docker_container_label_coolify_application_name']
+        target_label: 'coolify_app_name'
+      
+      - source_labels: ['__meta_docker_container_label_coolify_project_id']
+        target_label: 'coolify_project_id'
+    
+    # Pipeline stages for Laravel log parsing
+    pipeline_stages:
+      # Parse Laravel logs
+      - multiline:
+          firstline: '^\[\d{4}-\d{2}-\d{2}'
+          max_wait_time: 3s
+      
+      - regex:
+          expression: '^\[(?P<timestamp>\d{4}-\d{2}-\d{2}[^\]]+)\]\s+(?P<environment>\w+)\.(?P<level>\w+):\s+(?P<message>.*)'
+      
+      - labels:
+          level:
+          environment:
+      
+      - timestamp:
+          source: timestamp
+          format: '2006-01-02 15:04:05'
+      
+      # Drop noisy logs (optional)
+      - match:
+          selector: '{level="DEBUG"}'
+          drop_ratio: 0.5
+          drop_interval: 1m
+
+  # File-based log scraping (if you mount Laravel logs directly)
+  - job_name: laravel-logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: laravel
+          __path__: /var/log/laravel/*.log
+    
+    pipeline_stages:
+      - multiline:
+          firstline: '^\[\d{4}-\d{2}-\d{2}'
+          max_wait_time: 3s
+      
+      - regex:
+          expression: '^\[(?P<timestamp>\d{4}-\d{2}-\d{2}[^\]]+)\]\s+(?P<environment>\w+)\.(?P<level>\w+):\s+(?P<message>.*)'
+      
+      - labels:
+          level:
+          environment:
+      
+      - timestamp:
+          source: timestamp
+          format: '2006-01-02 15:04:05'

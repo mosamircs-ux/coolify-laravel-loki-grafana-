@@ -1,0 +1,78 @@
+{
+  "dashboard": {
+    "title": "Laravel Application Logs",
+    "panels": [
+      {
+        "title": "Log Volume",
+        "targets": [
+          {
+            "expr": "sum(rate({coolify_app_name=~\".*\"}[1m]))",
+            "refId": "A"
+          }
+        ],
+        "type": "timeseries",
+        "gridPos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "title": "Logs by Level",
+        "targets": [
+          {
+            "expr": "sum by (level) (count_over_time({coolify_app_name=~\".*\"} | json [5m]))",
+            "refId": "A"
+          }
+        ],
+        "type": "timeseries",
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 8
+        }
+      },
+      {
+        "title": "Error Rate",
+        "targets": [
+          {
+            "expr": "sum(rate({coolify_app_name=~\".*\"} | json | level=~\"error|critical|alert|emergency\" [5m]))",
+            "refId": "A"
+          }
+        ],
+        "type": "stat",
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 8
+        }
+      },
+      {
+        "title": "Recent Logs",
+        "targets": [
+          {
+            "expr": "{coolify_app_name=~\".*\"}",
+            "refId": "A"
+          }
+        ],
+        "type": "logs",
+        "gridPos": {
+          "h": 12,
+          "w": 24,
+          "x": 0,
+          "y": 16
+        }
+      }
+    ],
+    "time": {
+      "from": "now-6h",
+      "to": "now"
+    },
+    "timezone": "browser",
+    "schemaVersion": 36,
+    "version": 1
+  }
+}
